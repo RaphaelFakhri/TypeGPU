@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { tgpu } from 'typegpu';
 import {
   align,
   arrayOf,
@@ -225,5 +226,24 @@ describe('schemasEqualStructurally', () => {
     expect(schemasEqualStructurally(struct({ a: f32 }), unstruct({ a: f32 }))).toBe(false);
     expect(schemasEqualStructurally(arrayOf(f32, 4), disarrayOf(f32, 4))).toBe(false);
     expect(schemasEqualStructurally(struct({ a: f32 }), f32)).toBe(false);
+  });
+
+  it('can be called at comptime in a shader function', () => {
+    const A = struct({ a: f32 });
+    const B = struct({ a: f32 });
+
+    const f = () => {
+      'use gpu';
+      if (schemasEqualStructurally(A, B)) {
+        return 1;
+      }
+      return 0;
+    };
+
+    expect(tgpu.resolve([f])).toMatchInlineSnapshot(`
+      "fn f() -> i32 {
+        return 1;
+      }"
+    `);
   });
 });
